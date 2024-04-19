@@ -30,13 +30,20 @@ impl EDIFormatter {
         content.trim().to_string()
     }
 
+    fn format_segment(segment: &str, delimiter: char) -> Option<String> {
+        if !segment.is_empty() {
+            return Some(format!("{s}{d}", s = segment, d = delimiter));
+        }
+        None
+    }
+
     fn format_content(&self) -> String {
         self.read_file()
             .split(self.una.segment_delimiter)
+            .into_iter()
+            .filter_map(|s| EDIFormatter::format_segment(s, self.una.segment_delimiter))
             .collect::<Vec<_>>()
-            .join(format!("{d}\n", d = self.una.segment_delimiter).as_str())
-            .trim()
-            .to_string()
+            .join("\n")
     }
 }
 
