@@ -1,11 +1,12 @@
 #[allow(clippy::upper_case_acronyms)]
-struct UNA {
+#[derive(Debug, PartialEq)]
+pub struct UNA {
     composite_element_delimiter: char,
     data_element_delimiter: char,
     decimal_comma: char,
     escape_character: char,
     reserved_space: char,
-    segment_delimiter: char,
+    pub segment_delimiter: char,
 }
 
 impl Default for UNA {
@@ -24,7 +25,11 @@ impl Default for UNA {
 impl From<String> for UNA {
     fn from(value: String) -> Self {
         if value.len() != 9 {
-            panic!("UNA line does not have 9 characters. {line}", line = value);
+            panic!(
+                "UNA segment does not have 9 characters. {line}, {length}",
+                length = value.len(),
+                line = value
+            );
         }
         UNA::parse(value.chars().collect::<Vec<char>>().try_into().unwrap())
     }
