@@ -1,5 +1,6 @@
 use std::{fs::File, io::Read};
 
+use crate::io_helpers;
 use crate::segments::UNA;
 
 pub struct EDIFormatter {
@@ -9,39 +10,25 @@ pub struct EDIFormatter {
 
 impl EDIFormatter {
     fn new(file_path: String) -> Self {
-        let una = UNA::from(EDIFormatter::read_una(&file_path));
-        Self {
-            una: una,
-            file_path: file_path,
-        }
+        let una = UNA::from(io_helpers::read_una_content(file_path.as_str()));
+        Self { una, file_path }
     }
 
-    fn read_una(file_path: &str) -> String {
-        let mut file = File::open(file_path).unwrap();
-        let mut buffer = [0; 9];
-        file.read_exact(&mut buffer).unwrap();
-        String::from_utf8_lossy(&buffer).into()
-    }
-
-    fn read_file(&self) -> String {
-        let mut content = "".to_string();
-        let mut file = File::open(&self.file_path).unwrap();
-        file.read_to_string(&mut content).unwrap();
-        content.trim().to_string()
-    }
-
-    fn format_segment(segment: &str, delimiter: char) -> Option<String> {
+    fn format_segment(&self, segment: &str) -> Option<String> {
         if !segment.is_empty() {
-            return Some(format!("{s}{d}", s = segment, d = delimiter));
+            return Some(format!(
+                "{s}{d}",
+                s = segment,
+                d = self.una.segment_delimiter
+            ));
         }
         None
     }
 
-    fn format_content(&self) -> String {
-        self.read_file()
+    fn format(&self) -> String {
+        io_helpers::read_content_from_file(self.file_path.as_str())
             .split(self.una.segment_delimiter)
-            .into_iter()
-            .filter_map(|s| EDIFormatter::format_segment(s, self.una.segment_delimiter))
+            .filter_map(|s| self.format_segment(s))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -49,6 +36,8 @@ impl EDIFormatter {
 
 #[cfg(test)]
 mod tests {
+    use crate::io_helpers::read_content_from_file;
+
     use super::*;
 
     #[test]
@@ -62,13 +51,14 @@ mod tests {
 
     #[test]
     fn formatted_content() {
-        let formatted_file_path = String::from("tests/valid_formatted.edi");
+        let formatted_file_path = "tests/valid_formatted.edi";
         let unformatted_file_path = String::from("tests/valid_not_formatted.edi");
+
         let formatter = EDIFormatter::new(unformatted_file_path);
 
         assert_eq!(
-            formatter.format_content(),
-            EDIFormatter::new(formatted_file_path).read_file()
+            formatter.format(),
+            read_content_from_file(formatted_file_path)
         );
     }
 }
