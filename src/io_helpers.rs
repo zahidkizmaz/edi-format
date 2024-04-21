@@ -17,7 +17,8 @@ pub fn read_content_from_file(file_path: &str) -> String {
     content.trim().to_string()
 }
 
-pub fn write_content_to_file(file_path: &str, content: String) -> Result<usize, ()> {
-    let mut file = File::open(file_path).unwrap();
-    Ok(file.write(content.as_bytes()).unwrap())
+pub fn write_content_to_file(file_path: &str, content: String) -> Result<(), ()> {
+    let mut file = File::create(file_path).unwrap();
+    file.write_all(content.as_bytes()).unwrap();
+    Ok(())
 }
