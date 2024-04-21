@@ -1,16 +1,14 @@
-use std::{fs::File, io::Read};
-
 use crate::io_helpers;
 use crate::segments::UNA;
 
-pub struct EDIFormatter {
+pub struct EDIFormatter<'a> {
     una: UNA,
-    file_path: String,
+    file_path: &'a str,
 }
 
-impl EDIFormatter {
-    fn new(file_path: String) -> Self {
-        let una = UNA::from(io_helpers::read_una_content(file_path.as_str()));
+impl<'a> EDIFormatter<'a> {
+    pub fn new(file_path: &'a str) -> Self {
+        let una = UNA::from(io_helpers::read_una_content(file_path));
         Self { una, file_path }
     }
 
@@ -25,8 +23,8 @@ impl EDIFormatter {
         None
     }
 
-    fn format(&self) -> String {
-        io_helpers::read_content_from_file(self.file_path.as_str())
+    pub fn format(&self) -> String {
+        io_helpers::read_content_from_file(self.file_path)
             .split(self.una.segment_delimiter)
             .filter_map(|s| self.format_segment(s))
             .collect::<Vec<_>>()
@@ -42,8 +40,7 @@ mod tests {
 
     #[test]
     fn read_valid_una_from_file() {
-        let file_path = String::from("tests/valid_formatted.edi");
-
+        let file_path = "tests/valid_formatted.edi";
         let formatter = EDIFormatter::new(file_path);
 
         assert_eq!(formatter.una, UNA::from(String::from("UNA:+.? '")));
@@ -52,7 +49,7 @@ mod tests {
     #[test]
     fn formatted_content() {
         let formatted_file_path = "tests/valid_formatted.edi";
-        let unformatted_file_path = String::from("tests/valid_not_formatted.edi");
+        let unformatted_file_path = "tests/valid_not_formatted.edi";
 
         let formatter = EDIFormatter::new(unformatted_file_path);
 
