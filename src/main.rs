@@ -9,7 +9,7 @@ use io_helpers::write_content_to_file;
 #[command(version, about, long_about = None)]
 struct Args {
     /// File path to format
-    #[arg(short, long)]
+    #[arg(index = 1, default_value_t = format!("."))]
     file_name: String,
 
     /// Do not actually modify the file but show formatted content in stdout
