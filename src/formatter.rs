@@ -1,3 +1,5 @@
+use tracing::trace;
+
 use crate::io_helpers::{self, read_content_from_file};
 use crate::segments::UNA;
 
@@ -15,11 +17,11 @@ impl EDIFormatter {
 
     fn format_segment(&self, segment: &str) -> Option<String> {
         if !segment.is_empty() {
-            return Some(format!(
-                "{s}{d}",
-                s = segment,
-                d = self.una.segment_delimiter
-            ));
+            let segment = format!("{s}{d}", s = segment, d = self.una.segment_delimiter)
+                .trim()
+                .to_string();
+            trace!("Segment: {segment}");
+            return Some(segment);
         }
         None
     }
@@ -58,5 +60,16 @@ mod tests {
             formatter.format(),
             read_content_from_file(formatted_file_path)
         );
+    }
+
+    #[test]
+    fn formatted_content_twice() {
+        let formatted_file_path = "tests/valid_formatted.edi";
+        let formatted_content = read_content_from_file(formatted_file_path);
+
+        let formatter = EDIFormatter::new(formatted_file_path);
+
+        assert_eq!(formatter.format(), formatted_content);
+        assert_eq!(formatter.format(), formatted_content);
     }
 }

@@ -4,8 +4,8 @@ mod segments;
 use clap::Parser;
 use formatter::EDIFormatter;
 use io_helpers::write_content_to_file;
-use tracing::{debug, error, info};
-
+use tracing::{debug, error, info, level_filters::LevelFilter};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 enum FormatResult {
     Formatted,
     Skipped,
@@ -24,11 +24,22 @@ struct Args {
     dry_run: bool,
 }
 
-fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+fn init_logging() {
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .with_env_var("EDI_FORMAT_LOG")
+        .try_from_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap();
 
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt::layer())
+        .init();
+}
+
+fn main() {
+    init_logging();
     let args = Args::parse();
 
     let file_path = args.path;
