@@ -1,5 +1,21 @@
 # EDIFACT Formatter
 
+Simple EDI file formatter.
+
+### Usage
+
+```
+edi-format [OPTIONS] [FILE_NAME]
+
+Arguments:
+  [FILE_NAME]  File path to format [default: .]
+
+Options:
+  -d, --dry-run  Do not actually modify the file but show formatted content in stdout
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
 ## Example EDIFACT File:
 
 ```
@@ -20,7 +36,6 @@ APD+EM2:0:1630::6+++++++DA'
 UNT+13+1'
 UNZ+1+1'
 ```
-
 
 ##### Reference
 
