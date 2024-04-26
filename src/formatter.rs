@@ -1,15 +1,16 @@
-use crate::io_helpers;
+use crate::io_helpers::{self, read_content_from_file};
 use crate::segments::UNA;
 
-pub struct EDIFormatter<'a> {
+pub struct EDIFormatter {
     una: UNA,
-    file_path: &'a str,
+    pub file_content: String,
 }
 
-impl<'a> EDIFormatter<'a> {
-    pub fn new(file_path: &'a str) -> Self {
+impl EDIFormatter {
+    pub fn new(file_path: &str) -> Self {
         let una = UNA::from(io_helpers::read_una_content(file_path));
-        Self { una, file_path }
+        let file_content = read_content_from_file(file_path);
+        Self { una, file_content }
     }
 
     fn format_segment(&self, segment: &str) -> Option<String> {
@@ -24,7 +25,7 @@ impl<'a> EDIFormatter<'a> {
     }
 
     pub fn format(&self) -> String {
-        io_helpers::read_content_from_file(self.file_path)
+        self.file_content
             .split(self.una.segment_delimiter)
             .filter_map(|s| self.format_segment(s))
             .collect::<Vec<_>>()
