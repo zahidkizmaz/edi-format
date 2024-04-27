@@ -13,6 +13,20 @@ Simple EDI file formatter.
 cargo install edi-format
 ```
 
+#### Shell
+
+##### Unix
+
+```shell
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/zahidkizmaz/edi-format/releases/latest/download/edi-format-installer.sh | sh
+```
+
+##### Powershell
+
+```shell
+powershell -c "irm https://github.com/zahidkizmaz/edi-format/releases/latest/download/edi-format-installer.ps1 | iex"
+```
+
 #### Building from source
 
 [Install rust and cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) if you don't have.
