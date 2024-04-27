@@ -1,5 +1,8 @@
 # EDIFACT Formatter
 
+[![CI](https://github.com/zahidkizmaz/edi-format/workflows/CI/badge.svg?event=push)](https://github.com/zahidkizmaz/edi-format/actions?query=event%3Apush+branch%3Amain+workflow%3ACI)
+[![License](https://img.shields.io/github/license/zahidkizmaz/edi-format.svg)](https://github.com/zahidkizmaz/edi-format/blob/main/LICENSE)
+
 Simple EDI file formatter.
 
 ### Installation
