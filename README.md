@@ -7,6 +7,12 @@ Simple EDI file formatter.
 
 ### Installation
 
+#### Cargo
+
+```shell
+cargo install edi-format
+```
+
 #### Building from source
 
 [Install rust and cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) if you don't have.
