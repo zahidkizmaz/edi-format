@@ -5,15 +5,16 @@ Simple EDI file formatter.
 ### Usage
 
 ```
-edi-format [OPTIONS] [FILE_NAME]
+Usage: edi-format [OPTIONS] <PATH>
 
 Arguments:
-  [FILE_NAME]  File path to format [default: .]
+  <PATH>  Path to format
 
 Options:
-  -d, --dry-run  Do not actually modify the file but show formatted content in stdout
-  -h, --help     Print help
-  -V, --version  Print version
+      --dry-run                Do not modify the file but show formatted content in stdout
+  -l, --log-level <LOG_LEVEL>  Log level eg: trace, debug, info, warn, error [default: INFO]
+  -h, --help                   Print help
+  -V, --version                Print version
 ```
 
 ## Example EDIFACT File:
