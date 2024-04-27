@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{Read, Write},
+    io::{stdout, Read, Write},
 };
 
 use tracing::{debug, info};
@@ -26,5 +26,11 @@ pub fn write_content_to_file(file_path: &str, content: String) -> Result<(), ()>
     info!("formatting file: {}", file_path);
     let mut file = File::create(file_path).unwrap();
     file.write_all(content.as_bytes()).unwrap();
+    Ok(())
+}
+
+pub fn write_content_to_stdout(content: String) -> Result<(), ()> {
+    let mut handle = stdout().lock();
+    handle.write_all(content.as_bytes()).unwrap();
     Ok(())
 }

@@ -3,24 +3,23 @@ mod io_helpers;
 mod segments;
 use clap::Parser;
 use formatter::EDIFormatter;
-use io_helpers::write_content_to_file;
+use io_helpers::{write_content_to_file, write_content_to_stdout};
 use tracing::{debug, error, info, level_filters::LevelFilter};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 enum FormatResult {
-    Formatted,
-    Skipped,
+    Format(String),
+    Skip,
 }
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     /// Path to format.
-    /// Can be a single file or a directory
-    #[arg(index = 1, default_value_t = format!("."))]
+    #[arg(index = 1)]
     path: String,
 
-    /// Do not actually modify the file but show formatted content in stdout
-    #[arg(short, long, default_value_t = false)]
+    /// Do not modify the file but show formatted content in stdout
+    #[arg(long, default_value_t = false)]
     dry_run: bool,
 }
 
@@ -41,11 +40,20 @@ fn init_logging() {
 fn main() {
     init_logging();
     let args = Args::parse();
+    debug!("Passed arguments: {:?}", args);
 
-    let file_path = args.path;
-    match format_file(file_path.as_str()) {
-        Ok(FormatResult::Formatted) => info!("formatted {file_path}"),
-        Ok(FormatResult::Skipped) => debug!("skipping formatting of{file_path}"),
+    let file_path = args.path.as_str();
+    match format_file(file_path) {
+        Ok(FormatResult::Format(formatted_content)) => {
+            if args.dry_run {
+                info!("Running in dry-run mode");
+                let _ = write_content_to_stdout(formatted_content);
+            } else {
+                let _ = write_content_to_file(file_path, formatted_content);
+                info!("formatted {file_path}")
+            }
+        }
+        Ok(FormatResult::Skip) => debug!("skipping formatting of {file_path}"),
         Err(()) => error!("error while formatting {file_path}"),
     }
 }
@@ -55,11 +63,7 @@ fn format_file(file_path: &str) -> Result<FormatResult, ()> {
     let formatted_content = formatter.format();
 
     if formatter.file_content == formatted_content {
-        return Ok(FormatResult::Skipped);
+        return Ok(FormatResult::Skip);
     }
-
-    match write_content_to_file(file_path, formatted_content) {
-        Ok(()) => Ok(FormatResult::Formatted),
-        Err(()) => Err(()),
-    }
+    Ok(FormatResult::Format(formatted_content))
 }
