@@ -1,11 +1,12 @@
 mod formatter;
 mod io_helpers;
 mod segments;
+
 use clap::Parser;
 use formatter::EDIFormatter;
 use io_helpers::{write_content_to_file, write_content_to_stdout};
-use tracing::{debug, error, info, level_filters::LevelFilter};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing::{debug, error, info, level_filters::LevelFilter, Level};
+use tracing_subscriber::{fmt, prelude::*, Registry};
 enum FormatResult {
     Format(String),
     Skip,
@@ -21,26 +22,24 @@ struct Args {
     /// Do not modify the file but show formatted content in stdout
     #[arg(long, default_value_t = false)]
     dry_run: bool,
+
+    /// Log level eg: trace, debug, info, warn, error
+    #[arg(short, long, default_value_t = Level::INFO)]
+    log_level: Level,
 }
 
-fn init_logging() {
-    let env_filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .with_env_var("EDI_FORMAT_LOG")
-        .try_from_env()
-        .or_else(|_| EnvFilter::try_new("info"))
-        .unwrap();
-
-    tracing_subscriber::registry()
-        .with(env_filter)
-        .with(fmt::layer())
-        .init();
+fn init_logging(log_level: Level) {
+    let level_filter = LevelFilter::from_level(log_level);
+    let subscriber = Registry::default()
+        .with(level_filter)
+        .with(fmt::Layer::default());
+    tracing::subscriber::set_global_default(subscriber).unwrap();
 }
 
 fn main() {
-    init_logging();
     let args = Args::parse();
     debug!("Passed arguments: {:?}", args);
+    init_logging(args.log_level);
 
     let file_path = args.path.as_str();
     match format_file(file_path) {
