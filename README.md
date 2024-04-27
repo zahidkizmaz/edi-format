@@ -17,9 +17,14 @@ Options:
   -V, --version                Print version
 ```
 
-## Example EDIFACT File:
+#### Example
 
-```
+```shell
+$ cat tests/valid_not_formatted.edi 
+UNA:+.? 'UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'UNH+1+PAORES:93:1:IA'MSG+1:45'IFT+3+XYZCOMPANY AVAILABILITY'ERC+A7V:1:AMD'IFT+3+NO MORE FLIGHTS'ODI'TVL+240493:1000::1220+FRA+JFK+DL+400+C'PDI++C:3+Y::3+F::1'APD+74C:0:::6++++++6X'TVL+240493:1740::2030+JFK+MIA+DL+081+C'PDI++C:4'APD+EM2:0:1630::6+++++++DA'UNT+13+1'UNZ+1+1'
+
+$ edi-format --dry-run tests/valid_not_formatted.edi
+2024-04-27T06:26:09.441402Z  INFO edi_format: Running in dry-run mode
 UNA:+.? '
 UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'
 UNH+1+PAORES:93:1:IA'
@@ -35,7 +40,7 @@ TVL+240493:1740::2030+JFK+MIA+DL+081+C'
 PDI++C:4'
 APD+EM2:0:1630::6+++++++DA'
 UNT+13+1'
-UNZ+1+1'
+UNZ+1+1'%
 ```
 
 ##### Reference
