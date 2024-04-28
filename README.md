@@ -1,7 +1,7 @@
 # EDIFACT Formatter
 
-[![CI](https://github.com/zahidkizmaz/edi-format/workflows/CI/badge.svg?event=push)](https://github.com/zahidkizmaz/edi-format/actions?query=event%3Apush+branch%3Amain+workflow%3ACI)
 [![License](https://img.shields.io/github/license/zahidkizmaz/edi-format.svg)](https://github.com/zahidkizmaz/edi-format/blob/main/LICENSE)
+[![Crates.io Version](https://img.shields.io/crates/v/edi-format?style=flat&link=https%3A%2F%2Fcrates.io%2Fcrates%2Fedi-format)](https://crates.io/crates/edi-format)
 
 Simple EDI file formatter.
 
