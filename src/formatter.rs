@@ -3,7 +3,7 @@ use tracing::trace;
 use crate::io_helpers::{self, read_content_from_file};
 use crate::segments::UNA;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FormatResult {
     Format(String),
     Skip,
@@ -86,5 +86,28 @@ mod tests {
 
         assert_eq!(formatter.format_content(), formatted_content);
         assert_eq!(formatter.format_content(), formatted_content);
+    }
+
+    #[test]
+    fn format_not_formatted_file() {
+        let not_formatted_file_path = "tests/valid_not_formatted.edi";
+        let formatted_file_path = "tests/valid_formatted.edi";
+        let formatted_content = read_content_from_file(formatted_file_path);
+
+        let formatter = EDIFormatter::new(not_formatted_file_path);
+
+        assert_eq!(
+            formatter.format(),
+            Ok(FormatResult::Format(formatted_content))
+        );
+    }
+
+    #[test]
+    fn format_already_formatted_file() {
+        let formatted_file_path = "tests/valid_formatted.edi";
+
+        let formatter = EDIFormatter::new(formatted_file_path);
+
+        assert_eq!(formatter.format(), Ok(FormatResult::Skip));
     }
 }
