@@ -7,10 +7,8 @@ use formatter::EDIFormatter;
 use io_helpers::{write_content_to_file, write_content_to_stdout};
 use tracing::{debug, error, info, level_filters::LevelFilter, Level};
 use tracing_subscriber::{fmt, prelude::*, Registry};
-enum FormatResult {
-    Format(String),
-    Skip,
-}
+
+use crate::formatter::FormatResult;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -42,7 +40,8 @@ fn main() {
     init_logging(args.log_level);
 
     let file_path = args.path.as_str();
-    match format_file(file_path) {
+    let formatter = EDIFormatter::new(file_path);
+    match formatter.format() {
         Ok(FormatResult::Format(formatted_content)) => {
             if args.dry_run {
                 info!("Running in dry-run mode");
@@ -55,14 +54,4 @@ fn main() {
         Ok(FormatResult::Skip) => debug!("skipping formatting of {file_path}"),
         Err(()) => error!("error while formatting {file_path}"),
     }
-}
-
-fn format_file(file_path: &str) -> Result<FormatResult, ()> {
-    let formatter = EDIFormatter::new(file_path);
-    let formatted_content = formatter.format();
-
-    if formatter.file_content == formatted_content {
-        return Ok(FormatResult::Skip);
-    }
-    Ok(FormatResult::Format(formatted_content))
 }

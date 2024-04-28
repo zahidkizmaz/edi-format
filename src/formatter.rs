@@ -3,9 +3,15 @@ use tracing::trace;
 use crate::io_helpers::{self, read_content_from_file};
 use crate::segments::UNA;
 
+#[derive(Debug)]
+pub enum FormatResult {
+    Format(String),
+    Skip,
+}
+
 pub struct EDIFormatter {
     una: UNA,
-    pub file_content: String,
+    file_content: String,
 }
 
 impl EDIFormatter {
@@ -26,12 +32,21 @@ impl EDIFormatter {
         None
     }
 
-    pub fn format(&self) -> String {
+    fn format_content(&self) -> String {
         self.file_content
             .split(self.una.segment_delimiter)
             .filter_map(|s| self.format_segment(s))
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    pub fn format(&self) -> Result<FormatResult, ()> {
+        let formatted_content = self.format_content();
+
+        if self.file_content == formatted_content {
+            return Ok(FormatResult::Skip);
+        }
+        Ok(FormatResult::Format(formatted_content))
     }
 }
 
@@ -57,7 +72,7 @@ mod tests {
         let formatter = EDIFormatter::new(unformatted_file_path);
 
         assert_eq!(
-            formatter.format(),
+            formatter.format_content(),
             read_content_from_file(formatted_file_path)
         );
     }
@@ -69,7 +84,7 @@ mod tests {
 
         let formatter = EDIFormatter::new(formatted_file_path);
 
-        assert_eq!(formatter.format(), formatted_content);
-        assert_eq!(formatter.format(), formatted_content);
+        assert_eq!(formatter.format_content(), formatted_content);
+        assert_eq!(formatter.format_content(), formatted_content);
     }
 }
