@@ -36,8 +36,8 @@ fn init_logging(log_level: Level) {
 
 fn main() {
     let args = Args::parse();
-    debug!("Passed arguments: {:?}", args);
     init_logging(args.log_level);
+    debug!("Passed arguments: {:?}", args);
 
     let file_path = args.path.as_str();
     let formatter = EDIFormatter::new(file_path);
@@ -51,7 +51,72 @@ fn main() {
                 info!("formatted {file_path}")
             }
         }
-        Ok(FormatResult::Skip) => debug!("skipping formatting of {file_path}"),
+        Ok(FormatResult::Skip) => debug!("Already formatted skipping {file_path}"),
         Err(()) => error!("error while formatting {file_path}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::process::Command;
+
+    use assert_cmd::{assert::OutputAssertExt, cargo::CommandCargoExt};
+    use predicates::prelude::predicate;
+
+    const EF: &str = "edi-format";
+
+    #[test]
+    fn run_help() {
+        let mut cmd = Command::cargo_bin(EF).unwrap();
+        cmd.arg("--help");
+
+        cmd.assert().success();
+        cmd.assert().stdout(predicate::str::contains("--dry-run"));
+        cmd.assert().stdout(predicate::str::contains("--log-level"));
+        cmd.assert().stdout(predicate::str::contains("--version"));
+        cmd.assert().stdout(predicate::str::contains("version"));
+    }
+
+    #[test]
+    fn run_formatted_file() {
+        let mut cmd = Command::cargo_bin(EF).unwrap();
+        cmd.arg("--log-level");
+        cmd.arg("debug");
+        cmd.arg("tests/valid_formatted.edi");
+
+        cmd.assert().success();
+        cmd.assert().stdout(predicate::str::contains(
+            "Already formatted skipping tests/valid_formatted.edi",
+        ));
+    }
+
+    #[test]
+    fn run_dry_run() {
+        let mut cmd = Command::cargo_bin(EF).unwrap();
+
+        cmd.arg("--dry-run").arg("tests/valid_not_formatted.edi");
+
+        let formatted_content = "UNA:+.? '
+UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'
+UNH+1+PAORES:93:1:IA'
+MSG+1:45'
+IFT+3+XYZCOMPANY AVAILABILITY'
+ERC+A7V:1:AMD'
+IFT+3+NO MORE FLIGHTS'
+ODI'
+TVL+240493:1000::1220+FRA+JFK+DL+400+C'
+PDI++C:3+Y::3+F::1'
+APD+74C:0:::6++++++6X'
+TVL+240493:1740::2030+JFK+MIA+DL+081+C'
+PDI++C:4'
+APD+EM2:0:1630::6+++++++DA'
+UNT+13+1'
+UNZ+1+1'";
+
+        cmd.assert().success();
+        cmd.assert()
+            .stdout(predicate::str::contains("Running in dry-run mode"));
+        cmd.assert()
+            .stdout(predicate::str::contains(formatted_content));
     }
 }
