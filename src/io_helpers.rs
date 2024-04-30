@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{stdout, Read, Write},
+    io::{stdin, stdout, Read, Write},
 };
 
 use tracing::{debug, info};
@@ -20,6 +20,13 @@ pub fn read_content_from_file(file_path: &str) -> String {
     let mut file = File::open(file_path).unwrap();
     file.read_to_string(&mut content).unwrap();
     content.trim().to_string()
+}
+
+pub fn read_content_from_stdin() -> String {
+    let mut buffer = String::new();
+    let mut handle = stdin().lock();
+    handle.read_to_string(&mut buffer).unwrap();
+    buffer
 }
 
 pub fn write_content_to_file(file_path: &str, content: String) -> Result<(), ()> {
