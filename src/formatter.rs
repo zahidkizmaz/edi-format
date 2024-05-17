@@ -1,4 +1,4 @@
-use tracing::trace;
+use tracing::{debug, trace};
 
 use crate::io_helpers::{self, read_content_from_file};
 use crate::segments::UNA;
@@ -6,7 +6,7 @@ use crate::segments::UNA;
 #[derive(Debug, PartialEq)]
 pub enum FormatResult {
     Format(String),
-    Skip,
+    Skip(String),
 }
 
 pub struct EDIFormatter {
@@ -15,9 +15,17 @@ pub struct EDIFormatter {
 }
 
 impl EDIFormatter {
+    pub fn new_from_content(content: String) -> Self {
+        let una = UNA::from(content.chars().take(9).collect::<String>());
+        let file_content = content.trim().to_string();
+        debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
+        Self { una, file_content }
+    }
+
     pub fn new(file_path: &str) -> Self {
         let una = UNA::from(io_helpers::read_una_content(file_path));
         let file_content = read_content_from_file(file_path);
+        debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
         Self { una, file_content }
     }
 
@@ -44,7 +52,7 @@ impl EDIFormatter {
         let formatted_content = self.format_content();
 
         if self.file_content == formatted_content {
-            return Ok(FormatResult::Skip);
+            return Ok(FormatResult::Skip(formatted_content));
         }
         Ok(FormatResult::Format(formatted_content))
     }
@@ -105,9 +113,13 @@ mod tests {
     #[test]
     fn format_already_formatted_file() {
         let formatted_file_path = "tests/valid_formatted.edi";
+        let formatted_content = read_content_from_file(formatted_file_path);
 
         let formatter = EDIFormatter::new(formatted_file_path);
 
-        assert_eq!(formatter.format(), Ok(FormatResult::Skip));
+        assert_eq!(
+            formatter.format(),
+            Ok(FormatResult::Skip(formatted_content))
+        );
     }
 }

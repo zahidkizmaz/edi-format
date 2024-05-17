@@ -2,12 +2,12 @@ mod formatter;
 mod io_helpers;
 mod segments;
 
-use std::str::FromStr;
+use std::{io::Read, str::FromStr};
 
 use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
 use formatter::EDIFormatter;
 use io_helpers::{write_content_to_file, write_content_to_stdout};
-use tracing::{debug, error, info, level_filters::LevelFilter, Level};
+use tracing::{debug, error, info, level_filters::LevelFilter, trace, Level};
 use tracing_subscriber::{fmt, prelude::*, Registry};
 
 use crate::formatter::FormatResult;
@@ -26,7 +26,16 @@ fn cli() -> Command {
         .value_parser(value_parser!(bool))
         .action(ArgAction::SetTrue);
 
-    let path = Arg::new("path").help("Path to format.").index(1);
+    let stdin = Arg::new("stdin")
+        .long("stdin")
+        .help("Use stdin as the input.")
+        .value_parser(value_parser!(bool))
+        .action(ArgAction::SetTrue);
+
+    let path = Arg::new("path")
+        .required_unless_present("stdin")
+        .help("Path to format.")
+        .index(1);
 
     Command::new("edi-format")
         .version(crate_version!())
@@ -34,6 +43,7 @@ fn cli() -> Command {
         .arg(path)
         .arg(log_level)
         .arg(dry_run)
+        .arg(stdin)
 }
 
 fn init_logging(log_level: Level) {
@@ -48,11 +58,20 @@ fn main() {
     let args = cli().get_matches();
     let log_level = args.get_one::<Level>("log_level").unwrap();
     let dry_run = args.get_flag("dry_run");
-    let file_path = args.get_one::<String>("path").unwrap();
+    let stdin = args.get_flag("stdin");
 
     init_logging(*log_level);
     debug!("Passed arguments: {:?}", args);
 
+    if stdin {
+        format_stdin();
+    } else {
+        let file_path = args.get_one::<String>("path").unwrap();
+        format_file(file_path, dry_run);
+    }
+}
+
+fn format_file(file_path: &str, dry_run: bool) {
     let formatter = EDIFormatter::new(file_path);
     match formatter.format() {
         Ok(FormatResult::Format(formatted_content)) => {
@@ -64,8 +83,24 @@ fn main() {
                 info!("formatted {file_path}")
             }
         }
-        Ok(FormatResult::Skip) => debug!("Already formatted skipping {file_path}"),
+        Ok(FormatResult::Skip(_)) => debug!("Already formatted skipping {file_path}"),
         Err(()) => error!("error while formatting {file_path}"),
+    }
+}
+
+fn format_stdin() {
+    let mut content_input = String::new();
+    let stdin = std::io::stdin();
+    let mut handle = stdin.lock();
+    handle.read_to_string(&mut content_input).unwrap();
+
+    trace!("Stdin: {content_input}");
+    let formatter = EDIFormatter::new_from_content(content_input);
+    match formatter.format() {
+        Ok(FormatResult::Format(formatted_content)) | Ok(FormatResult::Skip(formatted_content)) => {
+            let _ = write_content_to_stdout(formatted_content);
+        }
+        Err(()) => error!("error while formatting"),
     }
 }
 
@@ -86,6 +121,7 @@ mod tests {
         cmd.assert().success();
         cmd.assert().stdout(predicate::str::contains("--dry-run"));
         cmd.assert().stdout(predicate::str::contains("--log-level"));
+        cmd.assert().stdout(predicate::str::contains("--stdin"));
         cmd.assert().stdout(predicate::str::contains("--version"));
         cmd.assert().stdout(predicate::str::contains("version"));
     }
