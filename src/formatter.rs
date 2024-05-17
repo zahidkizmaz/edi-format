@@ -6,7 +6,7 @@ use crate::segments::UNA;
 #[derive(Debug, PartialEq)]
 pub enum FormatResult {
     Format(String),
-    Skip,
+    Skip(String),
 }
 
 pub struct EDIFormatter {
@@ -52,7 +52,7 @@ impl EDIFormatter {
         let formatted_content = self.format_content();
 
         if self.file_content == formatted_content {
-            return Ok(FormatResult::Skip);
+            return Ok(FormatResult::Skip(formatted_content));
         }
         Ok(FormatResult::Format(formatted_content))
     }
@@ -113,9 +113,13 @@ mod tests {
     #[test]
     fn format_already_formatted_file() {
         let formatted_file_path = "tests/valid_formatted.edi";
+        let formatted_content = read_content_from_file(formatted_file_path);
 
         let formatter = EDIFormatter::new(formatted_file_path);
 
-        assert_eq!(formatter.format(), Ok(FormatResult::Skip));
+        assert_eq!(
+            formatter.format(),
+            Ok(FormatResult::Skip(formatted_content))
+        );
     }
 }

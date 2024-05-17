@@ -2,12 +2,12 @@ mod formatter;
 mod io_helpers;
 mod segments;
 
-use std::{io::BufRead, str::FromStr};
+use std::{io::Read, str::FromStr};
 
 use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
 use formatter::EDIFormatter;
 use io_helpers::{write_content_to_file, write_content_to_stdout};
-use tracing::{debug, error, info, level_filters::LevelFilter, Level};
+use tracing::{debug, error, info, level_filters::LevelFilter, trace, Level};
 use tracing_subscriber::{fmt, prelude::*, Registry};
 
 use crate::formatter::FormatResult;
@@ -83,23 +83,23 @@ fn format_file(file_path: &str, dry_run: bool) {
                 info!("formatted {file_path}")
             }
         }
-        Ok(FormatResult::Skip) => debug!("Already formatted skipping {file_path}"),
+        Ok(FormatResult::Skip(_)) => debug!("Already formatted skipping {file_path}"),
         Err(()) => error!("error while formatting {file_path}"),
     }
 }
 
 fn format_stdin() {
-    let mut buffer = String::new();
+    let mut content_input = String::new();
     let stdin = std::io::stdin();
     let mut handle = stdin.lock();
+    handle.read_to_string(&mut content_input).unwrap();
 
-    handle.read_line(&mut buffer).unwrap();
-    let formatter = EDIFormatter::new_from_content(buffer);
+    trace!("Stdin: {content_input}");
+    let formatter = EDIFormatter::new_from_content(content_input);
     match formatter.format() {
-        Ok(FormatResult::Format(formatted_content)) => {
+        Ok(FormatResult::Format(formatted_content)) | Ok(FormatResult::Skip(formatted_content)) => {
             let _ = write_content_to_stdout(formatted_content);
         }
-        Ok(FormatResult::Skip) => debug!("Already formatted skipping."),
         Err(()) => error!("error while formatting"),
     }
 }
