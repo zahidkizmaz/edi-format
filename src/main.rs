@@ -2,7 +2,9 @@ mod formatter;
 mod io_helpers;
 mod segments;
 
-use clap::Parser;
+use std::str::FromStr;
+
+use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
 use formatter::EDIFormatter;
 use io_helpers::{write_content_to_file, write_content_to_stdout};
 use tracing::{debug, error, info, level_filters::LevelFilter, Level};
@@ -10,20 +12,28 @@ use tracing_subscriber::{fmt, prelude::*, Registry};
 
 use crate::formatter::FormatResult;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Args {
-    /// Path to format.
-    #[arg(index = 1)]
-    path: String,
+fn cli() -> Command {
+    let log_level = Arg::new("log_level")
+        .short('l')
+        .long("log-level")
+        .help("Log level eg: trace, debug, info, warn, error.")
+        .value_parser(Level::from_str)
+        .default_value(Level::INFO.as_str());
 
-    /// Do not modify the file but show formatted content in stdout
-    #[arg(long, default_value_t = false)]
-    dry_run: bool,
+    let dry_run = Arg::new("dry_run")
+        .long("dry-run")
+        .help("Do not modify the file but show formatted content in stdout.")
+        .value_parser(value_parser!(bool))
+        .action(ArgAction::SetTrue);
 
-    /// Log level eg: trace, debug, info, warn, error
-    #[arg(short, long, default_value_t = Level::INFO)]
-    log_level: Level,
+    let path = Arg::new("path").help("Path to format.").index(1);
+
+    Command::new("edi-format")
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(path)
+        .arg(log_level)
+        .arg(dry_run)
 }
 
 fn init_logging(log_level: Level) {
@@ -35,15 +45,18 @@ fn init_logging(log_level: Level) {
 }
 
 fn main() {
-    let args = Args::parse();
-    init_logging(args.log_level);
+    let args = cli().get_matches();
+    let log_level = args.get_one::<Level>("log_level").unwrap();
+    let dry_run = args.get_flag("dry_run");
+    let file_path = args.get_one::<String>("path").unwrap();
+
+    init_logging(*log_level);
     debug!("Passed arguments: {:?}", args);
 
-    let file_path = args.path.as_str();
     let formatter = EDIFormatter::new(file_path);
     match formatter.format() {
         Ok(FormatResult::Format(formatted_content)) => {
-            if args.dry_run {
+            if dry_run {
                 info!("Running in dry-run mode");
                 let _ = write_content_to_stdout(formatted_content);
             } else {

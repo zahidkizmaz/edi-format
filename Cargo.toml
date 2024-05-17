@@ -3,11 +3,11 @@ name = "edi-format"
 version = "0.1.1"
 edition = "2021"
 repository = "https://github.com/zahidkizmaz/edi-format"
-description = " EDIFACT Formatter"
+description = "EDIFACT Formatter"
 license = "MIT"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.4", features = ["cargo"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 
