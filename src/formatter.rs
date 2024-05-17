@@ -1,4 +1,4 @@
-use tracing::trace;
+use tracing::{debug, trace};
 
 use crate::io_helpers::{self, read_content_from_file};
 use crate::segments::UNA;
@@ -16,14 +16,16 @@ pub struct EDIFormatter {
 
 impl EDIFormatter {
     pub fn new_from_content(content: String) -> Self {
-        let una = UNA::from(content.clone());
+        let una = UNA::from(content.chars().take(9).collect::<String>());
         let file_content = content;
+        debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
         Self { una, file_content }
     }
 
     pub fn new(file_path: &str) -> Self {
         let una = UNA::from(io_helpers::read_una_content(file_path));
         let file_content = read_content_from_file(file_path);
+        debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
         Self { una, file_content }
     }
 
