@@ -17,7 +17,7 @@ pub struct EDIFormatter {
 impl EDIFormatter {
     pub fn new_from_content(content: String) -> Self {
         let una = UNA::from(content.chars().take(9).collect::<String>());
-        let file_content = content;
+        let file_content = content.trim().to_string();
         debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
         Self { una, file_content }
     }
