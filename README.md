@@ -5,6 +5,8 @@
 
 Simple EDI file formatter.
 
+![Demo](demo.gif)
+
 ### Installation
 
 #### Cargo
