@@ -58,7 +58,7 @@ fn main() -> Result<()> {
     let stdin = args.get_flag("stdin");
 
     init_logging(*log_level);
-    debug!("Passed arguments: {:?}", args);
+    debug!(?args, "Passed arguments");
 
     if stdin {
         format_stdin()?;
