@@ -2,61 +2,42 @@ use std::io::{self, BufRead, BufReader, Read, Write};
 
 use crate::segments::UNA;
 
-pub(crate) fn format(mut input: impl Read, mut output: impl Write) -> Result<(), io::Error> {
-    let una = UNA::from(&mut input)?;
-    let mut take_over_from_last_line: Option<u8> = None;
-
-    let mut line_break = [0u8; 1];
+fn skip_over_line_breaks(input: &mut impl BufRead) -> Result<(), io::Error> {
     loop {
-        let read = input.read(&mut line_break)?;
-        if read == 0 {
+        let rest = input.fill_buf()?;
+        if rest.is_empty() {
             break;
-        } else if line_break == [b'\n'] {
-            continue;
+        }
+        if rest[0] == b'\n' {
+            input.consume(1);
         } else {
-            take_over_from_last_line = Some(line_break[0]);
             break;
         }
     }
+    Ok(())
+}
+
+pub(crate) fn format(input: impl Read, mut output: impl Write) -> Result<(), io::Error> {
+    let mut input = BufReader::new(input);
+
+    let una = UNA::from(&mut input)?;
+    skip_over_line_breaks(&mut input)?;
 
     una.write_to(&mut output)?;
     let written = output.write(b"\n")?;
     debug_assert_eq!(written, 1);
 
-    let mut input = BufReader::new(input);
-
     let mut buf = Vec::new();
     loop {
         buf.clear();
-        if let Some(toflm) = take_over_from_last_line {
-            buf.push(toflm);
-            take_over_from_last_line = None;
-        }
         input.read_until(una.segment_delimiter, &mut buf)?;
+        skip_over_line_breaks(&mut input)?;
 
-        let mut buf_len = buf.len();
-        while buf_len > 0 && buf[buf_len - 1] == b'\n' {
-            buf_len -= 1;
-        }
-
-        let mut line_break = [0u8; 1];
-        loop {
-            let read = input.read(&mut line_break)?;
-            if read == 0 {
-                break;
-            } else if line_break == [b'\n'] {
-                continue;
-            } else {
-                take_over_from_last_line = Some(line_break[0]);
-                break;
-            }
-        }
-
-        if buf.is_empty() || buf_len == 0 {
+        if buf.is_empty() {
             break;
         }
 
-        output.write_all(&buf[..buf_len])?;
+        output.write_all(&buf)?;
         let written = output.write(b"\n")?;
         debug_assert_eq!(written, 1);
     }
