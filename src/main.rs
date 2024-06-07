@@ -3,10 +3,10 @@ mod formatter;
 mod segments;
 
 use anyhow::{Context, Result};
-use std::{fs::File, str::FromStr};
+use std::{fs::File, io::Write, str::FromStr};
 
 use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
-use tracing::{debug, level_filters::LevelFilter, Level};
+use tracing::{debug, info, level_filters::LevelFilter, Level};
 use tracing_subscriber::{fmt, prelude::*, Registry};
 
 fn cli() -> Command {
@@ -71,12 +71,21 @@ fn main() -> Result<()> {
 
 fn format_file(file_path: &str, dry_run: bool) -> Result<()> {
     let input = File::open(file_path).context("error opening file")?;
-    let mut output = tempfile::NamedTempFile::new()?;
+    let mut output = vec![];
 
     formatter::format(&input, &mut output).context("error formatting")?;
-
     drop(input);
-    output.persist(file_path)?;
+
+    if dry_run {
+        info!("Running in dry-run mode");
+        let mut stdout = std::io::stdout().lock();
+        stdout.write_all(&output)?;
+    } else {
+        File::create(file_path)
+            .context("failed to open file to write")?
+            .write_all(&output)
+            .context("failed to write file")?;
+    }
 
     Ok(())
 }
@@ -91,10 +100,11 @@ fn format_stdin() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
+    use std::{fs::read, io::Write, process::Command};
 
     use assert_cmd::{assert::OutputAssertExt, cargo::CommandCargoExt};
     use predicates::prelude::predicate;
+    use pretty_assertions_sorted::assert_eq;
 
     const EF: &str = "edi-format";
 
@@ -117,40 +127,58 @@ mod tests {
     //     cmd.arg("--log-level");
     //     cmd.arg("debug");
     //     cmd.arg("tests/valid_formatted.edi");
-
     //     cmd.assert().success();
     //     cmd.assert().stdout(predicate::str::contains(
     //         "Already formatted skipping tests/valid_formatted.edi",
     //     ));
     // }
 
-    //     #[test]
-    //     fn run_dry_run() {
-    //         let mut cmd = Command::cargo_bin(EF).unwrap();
+    #[test]
+    fn run_dry_run() {
+        let mut cmd = Command::cargo_bin(EF).unwrap();
 
-    //         cmd.arg("--dry-run").arg("tests/valid_not_formatted.edi");
+        cmd.arg("--dry-run").arg("tests/valid_not_formatted.edi");
 
-    //         let formatted_content = "UNA:+.? '
-    // UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'
-    // UNH+1+PAORES:93:1:IA'
-    // MSG+1:45'
-    // IFT+3+XYZCOMPANY AVAILABILITY'
-    // ERC+A7V:1:AMD'
-    // IFT+3+NO MORE FLIGHTS'
-    // ODI'
-    // TVL+240493:1000::1220+FRA+JFK+DL+400+C'
-    // PDI++C:3+Y::3+F::1'
-    // APD+74C:0:::6++++++6X'
-    // TVL+240493:1740::2030+JFK+MIA+DL+081+C'
-    // PDI++C:4'
-    // APD+EM2:0:1630::6+++++++DA'
-    // UNT+13+1'
-    // UNZ+1+1'";
+        let formatted_content = "UNA:+.? '
+UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'
+UNH+1+PAORES:93:1:IA'
+MSG+1:45'
+IFT+3+XYZCOMPANY AVAILABILITY'
+ERC+A7V:1:AMD'
+IFT+3+NO MORE FLIGHTS'
+ODI'
+TVL+240493:1000::1220+FRA+JFK+DL+400+C'
+PDI++C:3+Y::3+F::1'
+APD+74C:0:::6++++++6X'
+TVL+240493:1740::2030+JFK+MIA+DL+081+C'
+PDI++C:4'
+APD+EM2:0:1630::6+++++++DA'
+UNT+13+1'
+UNZ+1+1'";
 
-    //         cmd.assert().success();
-    //         cmd.assert()
-    //             .stdout(predicate::str::contains("Running in dry-run mode"));
-    //         cmd.assert()
-    //             .stdout(predicate::str::contains(formatted_content));
-    //     }
+        cmd.assert().success();
+        cmd.assert()
+            .stdout(predicate::str::contains("Running in dry-run mode"));
+        cmd.assert()
+            .stdout(predicate::str::contains(formatted_content));
+    }
+
+    #[test]
+    fn format_unformatted_file() {
+        let mut cmd = Command::cargo_bin(EF).unwrap();
+        let mut temp = tempfile::NamedTempFile::new().unwrap();
+        let temp_path = temp.path().to_str().unwrap().to_string();
+        temp.write_all(include_bytes!("../tests/valid_not_formatted.edi"))
+            .unwrap();
+
+        cmd.arg(&temp_path);
+        cmd.assert().success();
+        let result = read(&temp_path).unwrap();
+
+        drop(temp);
+        assert_eq!(
+            result,
+            include_bytes!("../tests/valid_formatted.edi").to_vec(),
+        );
+    }
 }
