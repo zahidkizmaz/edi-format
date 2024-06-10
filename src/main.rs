@@ -3,7 +3,7 @@ mod formatter;
 mod segments;
 
 use anyhow::{Context, Result};
-use std::{fs::File, io::Write, str::FromStr};
+use std::{fs::File, io::BufWriter, str::FromStr};
 
 use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
 use tracing::{debug, info, level_filters::LevelFilter, Level};
@@ -71,21 +71,21 @@ fn main() -> Result<()> {
 
 fn format_file(file_path: &str, dry_run: bool) -> Result<()> {
     let input = File::open(file_path).context("error opening file")?;
-    let mut output = vec![];
-
-    formatter::format(&input, &mut output).context("error formatting")?;
-    drop(input);
 
     if dry_run {
         info!("Running in dry-run mode");
-        let mut stdout = std::io::stdout().lock();
-        stdout.write_all(&output)?;
+        let output = BufWriter::new(std::io::stdout().lock());
+        formatter::format(&input, output).context("error formatting")?;
+        drop(input);
     } else {
-        File::create(file_path)
-            .context("failed to open file to write")?
-            .write_all(&output)
-            .context("failed to write file")?;
-    }
+        let mut output = BufWriter::new(tempfile::NamedTempFile::new_in("./")?);
+        formatter::format(&input, &mut output).context("error formatting")?;
+        drop(input);
+        output
+            .into_inner()
+            .expect("This should never happen")
+            .persist(file_path)?;
+    };
 
     Ok(())
 }
