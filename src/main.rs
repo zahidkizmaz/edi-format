@@ -70,6 +70,7 @@ fn main() -> Result<()> {
 }
 
 fn format_file(file_path: &str, dry_run: bool) -> Result<()> {
+    debug!(?file_path, "Reading from file");
     let input = File::open(file_path).context("error opening file")?;
 
     if dry_run {
@@ -81,6 +82,7 @@ fn format_file(file_path: &str, dry_run: bool) -> Result<()> {
         let mut output = BufWriter::new(tempfile::NamedTempFile::new_in("./")?);
         formatter::format(&input, &mut output).context("error formatting")?;
         drop(input);
+        debug!(?file_path, "Writing to file");
         output
             .into_inner()
             .expect("This should never happen")
@@ -91,6 +93,7 @@ fn format_file(file_path: &str, dry_run: bool) -> Result<()> {
 }
 
 fn format_stdin() -> Result<()> {
+    debug!("Reading from stdin");
     let stdin = std::io::stdin().lock();
     let stdout = std::io::stdout().lock();
 
