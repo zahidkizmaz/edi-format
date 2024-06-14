@@ -1,125 +1,91 @@
-use tracing::{debug, trace};
+use std::io::{self, BufRead, BufReader, Read, Write};
 
-use crate::io_helpers::{self, read_content_from_file};
+use tracing::debug;
+
 use crate::segments::UNA;
 
-#[derive(Debug, PartialEq)]
-pub enum FormatResult {
-    Format(String),
-    Skip(String),
+fn skip_over_line_breaks(input: &mut impl BufRead) -> Result<(), io::Error> {
+    loop {
+        let rest = input.fill_buf()?;
+        if rest.is_empty() {
+            break;
+        }
+        if rest[0] == b'\n' {
+            input.consume(1);
+        } else {
+            break;
+        }
+    }
+    Ok(())
 }
 
-pub struct EDIFormatter {
-    una: UNA,
-    file_content: String,
-}
+pub(crate) fn format(input: impl Read, mut output: impl Write) -> Result<(), io::Error> {
+    let mut input = BufReader::new(input);
 
-impl EDIFormatter {
-    pub fn new_from_content(content: String) -> Self {
-        let una = UNA::from(content.chars().take(9).collect::<String>());
-        let file_content = content.trim().to_string();
-        debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
-        Self { una, file_content }
-    }
+    let una = UNA::from(&mut input)?;
+    skip_over_line_breaks(&mut input)?;
 
-    pub fn new(file_path: &str) -> Self {
-        let una = UNA::from(io_helpers::read_una_content(file_path));
-        let file_content = read_content_from_file(file_path);
-        debug!("Creating EDIFormatter UNA:{una:?}\nContent:{file_content}");
-        Self { una, file_content }
-    }
+    una.write_to(&mut output)?;
+    let written = output.write(b"\n")?;
+    debug_assert_eq!(written, 1);
 
-    fn format_segment(&self, segment: &str) -> Option<String> {
-        if !segment.is_empty() {
-            let segment = format!("{s}{d}", s = segment, d = self.una.segment_delimiter)
-                .trim()
-                .to_string();
-            trace!("Segment: {segment}");
-            return Some(segment);
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        input.read_until(una.segment_delimiter, &mut buf)?;
+        debug!(
+            segment = %String::from_utf8_lossy(&buf),
+            "Formatting segment"
+        );
+        skip_over_line_breaks(&mut input)?;
+
+        if buf.is_empty() {
+            break;
         }
-        None
+
+        output.write_all(&buf)?;
+        let written = output.write(b"\n")?;
+        debug_assert_eq!(written, 1);
     }
 
-    fn format_content(&self) -> String {
-        self.file_content
-            .split(self.una.segment_delimiter)
-            .filter_map(|s| self.format_segment(s))
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
-    pub fn format(&self) -> Result<FormatResult, ()> {
-        let formatted_content = self.format_content();
-
-        if self.file_content == formatted_content {
-            return Ok(FormatResult::Skip(formatted_content));
-        }
-        Ok(FormatResult::Format(formatted_content))
-    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::io_helpers::read_content_from_file;
-
     use super::*;
-
-    #[test]
-    fn read_valid_una_from_file() {
-        let file_path = "tests/valid_formatted.edi";
-        let formatter = EDIFormatter::new(file_path);
-
-        assert_eq!(formatter.una, UNA::from(String::from("UNA:+.? '")));
-    }
+    use pretty_assertions_sorted::assert_eq_sorted;
 
     #[test]
     fn formatted_content() {
-        let formatted_file_path = "tests/valid_formatted.edi";
-        let unformatted_file_path = "tests/valid_not_formatted.edi";
+        let test_input = include_bytes!("../tests/valid_not_formatted.edi");
+        let test_output = include_bytes!("../tests/valid_formatted.edi");
 
-        let formatter = EDIFormatter::new(unformatted_file_path);
+        let mut buf = Vec::new();
+        format(&mut io::Cursor::new(&test_input), &mut buf).unwrap();
 
-        assert_eq!(
-            formatter.format_content(),
-            read_content_from_file(formatted_file_path)
+        assert_eq_sorted!(
+            test_output,
+            &buf[..],
+            r#"expected: "{}", actual: "{}""#,
+            String::from_utf8_lossy(test_output),
+            String::from_utf8_lossy(&buf),
         );
     }
 
     #[test]
     fn formatted_content_twice() {
-        let formatted_file_path = "tests/valid_formatted.edi";
-        let formatted_content = read_content_from_file(formatted_file_path);
+        let test_input = include_bytes!("../tests/valid_formatted.edi");
 
-        let formatter = EDIFormatter::new(formatted_file_path);
+        let mut buf = Vec::new();
+        format(&mut io::Cursor::new(&test_input), &mut buf).unwrap();
 
-        assert_eq!(formatter.format_content(), formatted_content);
-        assert_eq!(formatter.format_content(), formatted_content);
-    }
-
-    #[test]
-    fn format_not_formatted_file() {
-        let not_formatted_file_path = "tests/valid_not_formatted.edi";
-        let formatted_file_path = "tests/valid_formatted.edi";
-        let formatted_content = read_content_from_file(formatted_file_path);
-
-        let formatter = EDIFormatter::new(not_formatted_file_path);
-
-        assert_eq!(
-            formatter.format(),
-            Ok(FormatResult::Format(formatted_content))
-        );
-    }
-
-    #[test]
-    fn format_already_formatted_file() {
-        let formatted_file_path = "tests/valid_formatted.edi";
-        let formatted_content = read_content_from_file(formatted_file_path);
-
-        let formatter = EDIFormatter::new(formatted_file_path);
-
-        assert_eq!(
-            formatter.format(),
-            Ok(FormatResult::Skip(formatted_content))
+        assert_eq_sorted!(
+            test_input,
+            &buf[..],
+            r#"expected: "{}", actual: "{}""#,
+            String::from_utf8_lossy(test_input),
+            String::from_utf8_lossy(&buf),
         );
     }
 }

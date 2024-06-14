@@ -7,6 +7,9 @@ description = "EDIFACT Formatter"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0.86"
+clap-stdin = "0.4.0"
+tempfile = "3.10.1"
 clap = { version = "4.5.6", features = ["cargo"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
@@ -14,6 +17,7 @@ tracing-subscriber = "0.3.18"
 [dev-dependencies]
 assert_cmd = "2.0.14"
 predicates = "3.1.0"
+pretty_assertions_sorted = "1.2.3"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]

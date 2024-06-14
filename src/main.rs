@@ -1,16 +1,13 @@
 mod formatter;
-mod io_helpers;
+
 mod segments;
 
-use std::{io::Read, str::FromStr};
+use anyhow::{Context, Result};
+use std::{fs::File, io::BufWriter, str::FromStr};
 
 use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
-use formatter::EDIFormatter;
-use io_helpers::{write_content_to_file, write_content_to_stdout};
-use tracing::{debug, error, info, level_filters::LevelFilter, trace, Level};
+use tracing::{debug, info, level_filters::LevelFilter, Level};
 use tracing_subscriber::{fmt, prelude::*, Registry};
-
-use crate::formatter::FormatResult;
 
 fn cli() -> Command {
     let log_level = Arg::new("log_level")
@@ -54,62 +51,63 @@ fn init_logging(log_level: Level) {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = cli().get_matches();
     let log_level = args.get_one::<Level>("log_level").unwrap();
     let dry_run = args.get_flag("dry_run");
     let stdin = args.get_flag("stdin");
 
     init_logging(*log_level);
-    debug!("Passed arguments: {:?}", args);
+    debug!(?args, "Passed arguments");
 
     if stdin {
-        format_stdin();
+        format_stdin()?;
     } else {
         let file_path = args.get_one::<String>("path").unwrap();
-        format_file(file_path, dry_run);
+        format_file(file_path, dry_run)?;
     }
+    Ok(())
 }
 
-fn format_file(file_path: &str, dry_run: bool) {
-    let formatter = EDIFormatter::new(file_path);
-    match formatter.format() {
-        Ok(FormatResult::Format(formatted_content)) => {
-            if dry_run {
-                info!("Running in dry-run mode");
-                let _ = write_content_to_stdout(formatted_content);
-            } else {
-                let _ = write_content_to_file(file_path, formatted_content);
-                info!("formatted {file_path}")
-            }
-        }
-        Ok(FormatResult::Skip(_)) => debug!("Already formatted skipping {file_path}"),
-        Err(()) => error!("error while formatting {file_path}"),
-    }
+fn format_file(file_path: &str, dry_run: bool) -> Result<()> {
+    debug!(?file_path, "Reading from file");
+    let input = File::open(file_path).context("error opening file")?;
+
+    if dry_run {
+        info!("Running in dry-run mode");
+        let output = BufWriter::new(std::io::stdout().lock());
+        formatter::format(&input, output).context("error formatting")?;
+        drop(input);
+    } else {
+        let mut output = BufWriter::new(tempfile::NamedTempFile::new_in("./")?);
+        formatter::format(&input, &mut output).context("error formatting")?;
+        drop(input);
+        debug!(?file_path, "Writing to file");
+        output
+            .into_inner()
+            .expect("This should never happen")
+            .persist(file_path)?;
+    };
+
+    Ok(())
 }
 
-fn format_stdin() {
-    let mut content_input = String::new();
-    let stdin = std::io::stdin();
-    let mut handle = stdin.lock();
-    handle.read_to_string(&mut content_input).unwrap();
+fn format_stdin() -> Result<()> {
+    debug!("Reading from stdin");
+    let stdin = std::io::stdin().lock();
+    let stdout = std::io::stdout().lock();
 
-    trace!("Stdin: {content_input}");
-    let formatter = EDIFormatter::new_from_content(content_input);
-    match formatter.format() {
-        Ok(FormatResult::Format(formatted_content)) | Ok(FormatResult::Skip(formatted_content)) => {
-            let _ = write_content_to_stdout(formatted_content);
-        }
-        Err(()) => error!("error while formatting"),
-    }
+    formatter::format(stdin, stdout)?;
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
+    use std::{fs::read, io::Write, process::Command};
 
     use assert_cmd::{assert::OutputAssertExt, cargo::CommandCargoExt};
     use predicates::prelude::predicate;
+    use pretty_assertions_sorted::assert_eq;
 
     const EF: &str = "edi-format";
 
@@ -126,18 +124,17 @@ mod tests {
         cmd.assert().stdout(predicate::str::contains("version"));
     }
 
-    #[test]
-    fn run_formatted_file() {
-        let mut cmd = Command::cargo_bin(EF).unwrap();
-        cmd.arg("--log-level");
-        cmd.arg("debug");
-        cmd.arg("tests/valid_formatted.edi");
-
-        cmd.assert().success();
-        cmd.assert().stdout(predicate::str::contains(
-            "Already formatted skipping tests/valid_formatted.edi",
-        ));
-    }
+    // #[test]
+    // fn run_formatted_file() {
+    //     let mut cmd = Command::cargo_bin(EF).unwrap();
+    //     cmd.arg("--log-level");
+    //     cmd.arg("debug");
+    //     cmd.arg("tests/valid_formatted.edi");
+    //     cmd.assert().success();
+    //     cmd.assert().stdout(predicate::str::contains(
+    //         "Already formatted skipping tests/valid_formatted.edi",
+    //     ));
+    // }
 
     #[test]
     fn run_dry_run() {
@@ -167,5 +164,24 @@ UNZ+1+1'";
             .stdout(predicate::str::contains("Running in dry-run mode"));
         cmd.assert()
             .stdout(predicate::str::contains(formatted_content));
+    }
+
+    #[test]
+    fn format_unformatted_file() {
+        let mut cmd = Command::cargo_bin(EF).unwrap();
+        let mut temp = tempfile::NamedTempFile::new().unwrap();
+        let temp_path = temp.path().to_str().unwrap().to_string();
+        temp.write_all(include_bytes!("../tests/valid_not_formatted.edi"))
+            .unwrap();
+
+        cmd.arg(&temp_path);
+        cmd.assert().success();
+        let result = read(&temp_path).unwrap();
+
+        drop(temp);
+        assert_eq!(
+            result,
+            include_bytes!("../tests/valid_formatted.edi").to_vec(),
+        );
     }
 }
