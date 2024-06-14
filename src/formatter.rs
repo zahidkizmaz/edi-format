@@ -33,7 +33,10 @@ pub(crate) fn format(input: impl Read, mut output: impl Write) -> Result<(), io:
     loop {
         buf.clear();
         input.read_until(una.segment_delimiter, &mut buf)?;
-        debug!(segment = ?String::from_utf8_lossy(&buf), "Formatting segment");
+        debug!(
+            segment = %String::from_utf8_lossy(&buf),
+            "Formatting segment"
+        );
         skip_over_line_breaks(&mut input)?;
 
         if buf.is_empty() {
