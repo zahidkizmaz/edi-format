@@ -112,9 +112,7 @@ UNT+13+1'
 UNZ+1+1'%
 ```
 
-##### Format in IDE:
-
-###### Neovim with efm-langserver
+##### Format in Neovim
 
 **Neovim: add `edi` filetype**
 
@@ -123,6 +121,21 @@ vim.filetype.add({
   extension = { edi = "edi" },
 })
 ```
+
+###### conform-nvim
+
+**Custom formatter in conform-nvim conform-nvim**
+
+```lua
+  formatters = {
+    edi_format = {
+      command = "edi-format",
+      args = { "-l", "error", "--stdin" },
+    },
+  },
+```
+
+###### efm-langserver
 
 **Example efm-langserver config**
 
