@@ -11,7 +11,7 @@ Simple EDI file formatter.
 
 #### Cargo
 
-```shell
+```sh
 cargo install edi-format
 ```
 
@@ -19,20 +19,27 @@ cargo install edi-format
 
 ##### Unix
 
-```shell
+```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/zahidkizmaz/edi-format/releases/latest/download/edi-format-installer.sh | sh
 ```
 
 ##### Powershell
 
-```shell
-powershell -c "irm https://github.com/zahidkizmaz/edi-format/releases/latest/download/edi-format-installer.ps1 | iex"
+```sh
+powersh -c "irm https://github.com/zahidkizmaz/edi-format/releases/latest/download/edi-format-installer.ps1 | iex"
+```
+
+#### Nix Flakes
+
+```sh
+nix run github:zahidkizmaz/edi-format -- --help
 ```
 
 #### Building from source
 
 [Install rust and cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) if you don't have.
-```shell
+
+```sh
 git clone https://github.com/zahidkizmaz/edi-format.git
 cd edi-format
 cargo build --release
@@ -59,12 +66,12 @@ Options:
 
 ##### Format a file:
 
-```shell
+```sh
 $ cat tests/valid_not_formatted.edi
 UNA:+.? 'UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'UNH+1+PAORES:93:1:IA'MSG+1:45'IFT+3+XYZCOMPANY AVAILABILITY'ERC+A7V:1:AMD'IFT+3+NO MORE FLIGHTS'ODI'TVL+240493:1000::1220+FRA+JFK+DL+400+C'PDI++C:3+Y::3+F::1'APD+74C:0:::6++++++6X'TVL+240493:1740::2030+JFK+MIA+DL+081+C'PDI++C:4'APD+EM2:0:1630::6+++++++DA'UNT+13+1'UNZ+1+1'
 
 $ edi-format --dry-run tests/valid_not_formatted.edi
-2024-04-27T06:26:09.441402Z  INFO edi_format: Running in dry-run mode
+2024-04-27T06:26:09.441402Z INFO edi_format: Running in dry-run mode
 UNA:+.? '
 UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'
 UNH+1+PAORES:93:1:IA'
@@ -85,7 +92,7 @@ UNZ+1+1'%
 
 ##### Format stdin:
 
-```shell
+```sh
 $ cat ./tests/valid_formatted.edi | edi-format --stdin
 UNA:+.? '
 UNB+IATB:1+6XPPC:ZZ+LHPPC:ZZ+940101:0950+1'
@@ -105,9 +112,7 @@ UNT+13+1'
 UNZ+1+1'%
 ```
 
-##### Format in IDE:
-
-###### Neovim with efm-langserver
+##### Format in Neovim
 
 **Neovim: add `edi` filetype**
 
@@ -117,17 +122,32 @@ vim.filetype.add({
 })
 ```
 
+###### conform-nvim
+
+**Custom formatter in conform-nvim conform-nvim**
+
+```lua
+  formatters = {
+    edi_format = {
+      command = "edi-format",
+      args = { "-l", "error", "--stdin" },
+    },
+  },
+```
+
+###### efm-langserver
+
 **Example efm-langserver config**
 
 ```yaml
 version: 2
 tools:
-    edi-format: &edi-format
-        format-stdin: true
-        format-command: 'edi-format -l error --stdin'
+  edi-format: &edi-format
+    format-stdin: true
+    format-command: "edi-format -l error --stdin"
 languages:
-    edi:
-        - <<: *edi-format
+  edi:
+    - <<: *edi-format
 ```
 
 ##### Reference
