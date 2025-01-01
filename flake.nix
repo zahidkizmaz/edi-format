@@ -12,13 +12,14 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+        manifest = (pkgs.lib.importTOML ./Cargo.toml).package;
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = "edi-format";
-          version = "0.2.0";
-          src = ./.;
-          cargoLock = ./Cargo.lock;
+          pname = manifest.name;
+          version = manifest.version;
+          cargoLock.lockFile = ./Cargo.lock;
+          src = pkgs.lib.cleanSource ./.;
         };
 
         devShells.default = pkgs.mkShell {
