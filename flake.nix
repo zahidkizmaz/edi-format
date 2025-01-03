@@ -15,11 +15,14 @@
         manifest = (pkgs.lib.importTOML ./Cargo.toml).package;
       in
       {
-        packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = manifest.name;
-          version = manifest.version;
-          cargoLock.lockFile = ./Cargo.lock;
-          src = pkgs.lib.cleanSource ./.;
+        packages = {
+          edi-format = pkgs.rustPlatform.buildRustPackage {
+            pname = manifest.name;
+            version = manifest.version;
+            cargoLock.lockFile = ./Cargo.lock;
+            src = pkgs.lib.cleanSource ./.;
+          };
+          default = self.packages.${system}.edi-format;
         };
 
         devShells.default = pkgs.mkShell {
