@@ -31,6 +31,34 @@ powersh -c "irm https://github.com/zahidkizmaz/edi-format/releases/latest/downlo
 
 #### Nix Flakes
 
+Example nix flake with dev shell:
+
+```nix
+{
+  description = "Simple development shell flake";
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+    edi-format.url = "github:zahidkizmaz/edi-format";
+  };
+  outputs = { self, nixpkgs, flake-utils, edi-format }: flake-utils.lib.eachDefaultSystem (system:
+    let
+      pkgs = nixpkgs.legacyPackages.${system};
+    in
+    {
+      devShell = pkgs.mkShell {
+        buildInputs = [
+          edi-format.packages.${system}.edi-format
+        ];
+      };
+    }
+  );
+}
+
+```
+
+OR just simply run:
+
 ```sh
 nix run github:zahidkizmaz/edi-format -- --help
 ```
