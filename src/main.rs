@@ -4,11 +4,11 @@ mod segments;
 
 use std::{io::Read, str::FromStr};
 
-use clap::{crate_description, crate_version, value_parser, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, crate_description, crate_version, value_parser};
 use formatter::EDIFormatter;
 use io_helpers::{write_content_to_file, write_content_to_stdout};
-use tracing::{debug, error, info, level_filters::LevelFilter, trace, Level};
-use tracing_subscriber::{fmt, prelude::*, Registry};
+use tracing::{Level, debug, error, info, level_filters::LevelFilter, trace};
+use tracing_subscriber::{Registry, fmt, prelude::*};
 
 use crate::formatter::FormatResult;
 
