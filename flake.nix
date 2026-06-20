@@ -33,10 +33,11 @@
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = [
-            pkgs.rustc
-            pkgs.cargo
-            pkgs.stdenv.cc
+          buildInputs = with pkgs; [
+            cargo
+            rustc
+            rustfmt
+            stdenv.cc
           ];
           packages = [ pkgs.cargo-dist ];
         };
