@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{stdout, Read, Write},
+    io::{Read, Write, stdout},
 };
 
 use tracing::{debug, info};
