@@ -31,30 +31,34 @@ powersh -c "irm https://github.com/zahidkizmaz/edi-format/releases/latest/downlo
 
 #### Nix Flakes
 
-Example nix flake with dev shell:
+Example NixOS configuration with:
 
 ```nix
 {
-  description = "Simple development shell flake";
+  description = "Example NixOS configuration with edi-format";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
     edi-format.url = "github:zahidkizmaz/edi-format";
   };
-  outputs = { self, nixpkgs, flake-utils, edi-format }: flake-utils.lib.eachDefaultSystem (system:
-    let
-      pkgs = nixpkgs.legacyPackages.${system};
-    in
+
+  outputs =
     {
-      devShell = pkgs.mkShell {
-        buildInputs = [
-          edi-format.packages.${system}.edi-format
+      self,
+      nixpkgs,
+      edi-format,
+    }:
+    {
+      nixosConfigurations.myMachine = nixpkgs.lib.nixosSystem {
+        modules = [
+          ({ pkgs, ... }: {
+            environment.systemPackages = [
+              edi-format.packages.${pkgs.stdenv.hostPlatform.system}.default
+            ];
+          })
         ];
       };
-    }
-  );
+    };
 }
-
 ```
 
 OR just simply run:
@@ -146,7 +150,7 @@ UNZ+1+1'%
 
 ```lua
 vim.filetype.add({
-  extension = { edi = "edi" },
+	extension = { edi = "edi" },
 })
 ```
 
@@ -175,7 +179,7 @@ tools:
     format-command: "edi-format -l error --stdin"
 languages:
   edi:
-    - <<: *edi-format
+    - !!merge <<: *edi-format
 ```
 
 ##### Reference
