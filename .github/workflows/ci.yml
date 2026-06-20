@@ -21,9 +21,6 @@ jobs:
 
   nix-build:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: "write"
-      contents: "read"
     steps:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/determinate-nix-action@v3
