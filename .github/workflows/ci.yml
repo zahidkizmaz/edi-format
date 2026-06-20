@@ -19,6 +19,19 @@ jobs:
       - name: Check formatting
         run: cargo fmt --check --verbose
 
+  nix-build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: "write"
+      contents: "read"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/determinate-nix-action@v3
+      - uses: DeterminateSystems/magic-nix-cache-action@v14
+      - uses: DeterminateSystems/nix-flake-checker-action@v12
+      - name: Build with Nix
+        run: nix build
+
   build:
     runs-on: ubuntu-latest
     steps:
