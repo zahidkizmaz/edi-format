@@ -5,13 +5,16 @@ on:
 jobs:
   update-flake-inputs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: DeterminateSystems/determinate-nix-action@v3
       - name: Update flake.lock
         uses: DeterminateSystems/update-flake-lock@main
         with:
-          pr-title: "Update flake.lock" # Title of PR to be created
-          pr-labels: | # Labels to be set on the PR
+          pr-title: "Update flake.lock"
+          pr-labels: |
             dependencies
             automated
