@@ -17,6 +17,7 @@ jobs:
       - name: Update flake.lock
         uses: DeterminateSystems/update-flake-lock@main
         with:
+          token: ${{ secrets.PR_AUTO_APPROVE_PAT }}
           pr-title: "Update flake.lock"
           branch: ${{ env.BRANCH_NAME }}
           pr-labels: |

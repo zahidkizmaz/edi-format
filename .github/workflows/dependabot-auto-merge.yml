@@ -29,15 +29,15 @@ jobs:
 
   flake-lock:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'github-actions[bot]' && github.event.pull_request.title == 'Update flake.lock' && github.repository == 'zahidkizmaz/edi-format'
+    if: github.event.pull_request.user.login == 'zahidkizmaz' && github.event.pull_request.title == 'Update flake.lock' && github.repository == 'zahidkizmaz/edi-format'
     steps:
       - name: Approve flake lock update PR
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.PR_AUTO_APPROVE_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Enable auto-merge for flake lock update
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.PR_AUTO_APPROVE_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
