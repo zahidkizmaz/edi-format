@@ -1,4 +1,4 @@
-name: Dependencies auto-merge
+name: Dependencies auto-merge and flake lock auto-approve
 on: pull_request
 
 permissions:
@@ -35,9 +35,9 @@ jobs:
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PR_AUTO_APPROVE_PAT }}
       - name: Enable auto-merge for flake lock update
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PR_AUTO_APPROVE_PAT }}

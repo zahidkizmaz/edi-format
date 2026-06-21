@@ -1,3 +1,4 @@
+name: Update flake.lock
 on:
   workflow_dispatch: # allows manual triggering
   schedule:
@@ -11,10 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: DeterminateSystems/determinate-nix-action@v3
+      - name: Generate unique branch name
+        run: echo "BRANCH_NAME=update-flake-lock-$(date +%s)" >> "$GITHUB_ENV"
       - name: Update flake.lock
         uses: DeterminateSystems/update-flake-lock@main
         with:
           pr-title: "Update flake.lock"
+          branch: ${{ env.BRANCH_NAME }}
           pr-labels: |
             dependencies
             automated
