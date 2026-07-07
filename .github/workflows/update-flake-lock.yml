@@ -10,7 +10,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: DeterminateSystems/determinate-nix-action@v3.21.2
       - name: Generate unique branch name
         run: echo "BRANCH_NAME=update-flake-lock-$(date +%s)" >> "$GITHUB_ENV"
